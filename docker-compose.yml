@@ -1,0 +1,34 @@
+version: "3"
+services:
+  saas:
+    image: saas:local
+    environment:
+      BASE_URL: http://localhost
+      MONGO_URI: mongodb://saas-mongodb/saas?replicaSet=rs0
+      EXPRESS_SESSION_SECRET: EXPRESS_SESSION_SECRET
+      ENDPOINT_SECRET: ENDPOINT_SECRET
+      STRIPE_SECRET_KEY: STRIPE_SECRET_KEY
+      STRIPE_PUBLIC_KEY: STRIPE_PUBLIC_KEY
+      STRIPE_PLAN: STRIPE_PLAN
+
+    ports:
+      - 3000:3000
+      - 5858:5858
+    volumes:
+      - saas-node-modules-volume:/app/node_modules
+      - ./src:/app/src
+
+  saas-mongodb:
+    image: mongo:4.2
+    environment:
+      MONGO_DATA_DIR: /data/db
+      MONGO_LOG_DIR: /dev/null
+    volumes:
+      - saas-mongodb-volume1:/data/db
+    ports:
+      - 26017:27017
+    command: ["--replSet", "rs0"]
+
+volumes:
+  saas-mongodb-volume1:
+  saas-node-modules-volume:

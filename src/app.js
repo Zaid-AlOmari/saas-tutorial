@@ -15,7 +15,7 @@ dotenv.config();
 var User = mongoose.model('User');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-mongoose.connect('mongodb://' + process.env.MONGO_USERNAME + ":" + process.env.MONGO_PASSWORD + '@localhost:27017/saas-tutorial-db', { useNewUrlParser: true,  useUnifiedTopology: true });
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 
 var app = express();
@@ -28,7 +28,7 @@ app.set('view engine', 'ejs');
 const bodyParser = require('body-parser');
 
 // Match the raw body to content type application/json
-app.post('/pay-success', bodyParser.raw({type: 'application/json'}), (request, response) => {
+app.post('/pay-success', bodyParser.raw({ type: 'application/json' }), (request, response) => {
     const sig = request.headers['stripe-signature'];
 
     let event;
@@ -47,7 +47,7 @@ app.post('/pay-success', bodyParser.raw({type: 'application/json'}), (request, r
         console.log(session);
         User.findOne({
             email: session.customer_email
-        }, function(err, user) {
+        }, function (err, user) {
             if (user) {
                 user.subscriptionActive = true;
                 user.subscriptionId = session.subscription;
@@ -58,14 +58,14 @@ app.post('/pay-success', bodyParser.raw({type: 'application/json'}), (request, r
     }
 
     // Return a response to acknowledge receipt of the event
-    response.json({received: true});
+    response.json({ received: true });
 });
 
 
 
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({extended: false}));
+app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(expressSession({
@@ -77,13 +77,13 @@ app.use(passport.session());
 passport.use(new LocalStrategy({
     usernameField: "email",
     passwordField: "password"
-}, function(email, password, next) {
+}, function (email, password, next) {
     User.findOne({
         email: email
-    }, function(err, user) {
+    }, function (err, user) {
         if (err) return next(err);
         if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-            return next({message: 'Email or password incorrect'})
+            return next({ message: 'Email or password incorrect' })
         }
         next(null, user);
     })
@@ -92,34 +92,34 @@ passport.use(new LocalStrategy({
 passport.use('signup-local', new LocalStrategy({
     usernameField: "email",
     passwordField: "password"
-}, function(email, password, next) {
+}, function (email, password, next) {
     User.findOne({
         email: email
-    }, function(err, user) {
+    }, function (err, user) {
         if (err) return next(err);
-        if (user) return next({message: "User already exists"});
+        if (user) return next({ message: "User already exists" });
         let newUser = new User({
             email: email,
             passwordHash: bcrypt.hashSync(password, 10)
         })
-        newUser.save(function(err) {
+        newUser.save(function (err) {
             next(err, newUser);
         });
     });
 }));
 
-passport.serializeUser(function(user, next) {
+passport.serializeUser(function (user, next) {
     next(null, user._id);
 });
 
-passport.deserializeUser(function(id, next) {
-    User.findById(id, function(err, user) {
+passport.deserializeUser(function (id, next) {
+    User.findById(id, function (err, user) {
         next(err, user);
     });
 });
 
 app.get('/', function (req, res, next) {
-    res.render('index', {title: "SaaS Tutorial"})
+    res.render('index', { title: "SaaS Tutorial" })
 });
 
 app.get('/billing', function (req, res, next) {
@@ -134,18 +134,18 @@ app.get('/billing', function (req, res, next) {
         },
         success_url: process.env.BASE_URL + ':3000/billing?session_id={CHECKOUT_SESSION_ID}',
         cancel_url: process.env.BASE_URL + ':3000/billing',
-    }, function(err, session) {
+    }, function (err, session) {
         if (err) return next(err);
-        res.render('billing', {STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY, sessionId: session.id, subscriptionActive: req.user.subscriptionActive})
+        res.render('billing', { STRIPE_PUBLIC_KEY: process.env.STRIPE_PUBLIC_KEY, sessionId: session.id, subscriptionActive: req.user.subscriptionActive })
     });
 })
 
-app.get('/logout', function(req, res, next) {
+app.get('/logout', function (req, res, next) {
     req.logout();
     res.redirect('/');
 });
 
-app.get('/walkthrough', function(req, res, next) {
+app.get('/walkthrough', function (req, res, next) {
     req.session.sawWalkthrough = true;
     res.end();
 })
@@ -160,17 +160,17 @@ app.get('/main', function (req, res, next) {
 
 app.post('/login',
     passport.authenticate('local', { failureRedirect: '/login-page' }),
-    function(req, res) {
+    function (req, res) {
         res.redirect('/main');
     });
 
-app.get('/login-page', function(req, res, next) {
+app.get('/login-page', function (req, res, next) {
     res.render('login-page')
 })
 
 app.post('/signup',
     passport.authenticate('signup-local', { failureRedirect: '/' }),
-    function(req, res) {
+    function (req, res) {
         res.redirect('/main');
     });
 
